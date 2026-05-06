@@ -64,8 +64,10 @@ try:
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",
     ]
-    creds_dict = json.loads(os.environ["GOOGLE_CREDS"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name(
+    "credentials.json",
+    scope
+    )
     client_gs = gspread.authorize(creds)
     sheet = client_gs.open("Westwood Finances").sheet1
     print("✅ Google Sheets connected")
