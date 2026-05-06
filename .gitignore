@@ -1,0 +1,5 @@
+echo ".env" >> .gitignore
+echo "user_teams.json" >> .gitignore
+echo "*.json" >> .gitignore
+git add .gitignore.env
+.envgit add .gitignore
