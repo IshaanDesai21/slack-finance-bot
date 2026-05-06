@@ -196,4 +196,4 @@ def summary(ack, body, client):
 
 if __name__ == "__main__":
     print("Starting bot...")
-    SocketModeHandler(app, SLACK_APP_TOKEN).start()
+    SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
