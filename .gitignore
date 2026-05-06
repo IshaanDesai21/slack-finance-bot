@@ -1,4 +1,4 @@
 .env
 credentials.json
-user_teams.json
-*.json
+__pycache__/
+*.pyc
