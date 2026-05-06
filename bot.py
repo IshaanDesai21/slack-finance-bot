@@ -16,6 +16,10 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # ─────────────────────────────────────────────
 # APP INIT
