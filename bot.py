@@ -79,24 +79,32 @@ try:
         "https://www.googleapis.com/auth/drive",
     ]
 
-    # Prefer credentials.json when running locally (env var can corrupt the private key)
-    if os.path.exists("credentials.json"):
-        print("Loading Google credentials from credentials.json...")
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    # Get the directory where bot.py is located
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    creds_path = os.path.join(base_dir, "credentials.json")
+
+    if os.path.exists(creds_path):
+        print(f"Loading Google credentials from: {creds_path}")
+        creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
     elif os.getenv("GOOGLE_CREDS"):
         print("Loading Google credentials from GOOGLE_CREDS env var...")
-        creds_dict = json.loads(os.getenv("GOOGLE_CREDS"))
+        creds_json = os.getenv("GOOGLE_CREDS")
+        creds_dict = json.loads(creds_json)
+        
         if "private_key" in creds_dict:
+            # Fix common newline escaping issues in environment variables
             creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+            
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     else:
-        raise Exception("No Google credentials found. Place credentials.json in the project directory or set GOOGLE_CREDS env var.")
+        raise Exception(f"No credentials found at {creds_path} or in GOOGLE_CREDS env var.")
 
     client_gs = gspread.authorize(creds)
     sheet = client_gs.open("Westwood Finances").sheet1
     print("✅ Google Sheets connected")
 except Exception as e:
     print(f"❌ Google Sheets FAILED: {e}")
+    print("TIP: If using GOOGLE_CREDS env var, ensure the JSON is valid and the private_key has correct \\n characters.")
 
 # ─────────────────────────────────────────────
 # CONSTANTS
