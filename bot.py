@@ -79,14 +79,18 @@ try:
         "https://www.googleapis.com/auth/drive",
     ]
 
-    google_creds_json = os.getenv("GOOGLE_CREDS")
-    if google_creds_json:
-        creds_dict = json.loads(google_creds_json)
+    # Prefer credentials.json when running locally (env var can corrupt the private key)
+    if os.path.exists("credentials.json"):
+        print("Loading Google credentials from credentials.json...")
+        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    elif os.getenv("GOOGLE_CREDS"):
+        print("Loading Google credentials from GOOGLE_CREDS env var...")
+        creds_dict = json.loads(os.getenv("GOOGLE_CREDS"))
         if "private_key" in creds_dict:
             creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     else:
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+        raise Exception("No Google credentials found. Place credentials.json in the project directory or set GOOGLE_CREDS env var.")
 
     client_gs = gspread.authorize(creds)
     sheet = client_gs.open("Westwood Finances").sheet1
@@ -364,20 +368,20 @@ def handle_order(ack, body, view, client):
     timestamp = now_ct()
 
     # Write to Google Sheet
-    if sheet:
-        try:
-            row = get_next_row(sheet)
-            total, order_id = write_order(
-                sheet, row, item, company, link, price, qty,
-                notes, category, team, timestamp, display_name,
-            )
-        except Exception:
-            traceback.print_exc()
-            client.chat_postMessage(channel=user_id, text="❌ Failed to write order to Google Sheet.")
-            return
-    else:
-        total = price * qty
-        order_id = generate_order_id()
+    if not sheet:
+        client.chat_postMessage(channel=user_id, text="❌ Google Sheets is not connected. Order was NOT placed.")
+        return
+
+    try:
+        row = get_next_row(sheet)
+        total, order_id = write_order(
+            sheet, row, item, company, link, price, qty,
+            notes, category, team, timestamp, display_name,
+        )
+    except Exception:
+        traceback.print_exc()
+        client.chat_postMessage(channel=user_id, text="❌ Failed to write order to Google Sheet.")
+        return
 
     # DM confirmation to the user
     client.chat_postMessage(
