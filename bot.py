@@ -22,11 +22,22 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 # APP INIT
 # ─────────────────────────────────────────────
 
-SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
-SLACK_APP_TOKEN = os.getenv("SLACK_APP_TOKEN")
+SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN", "").strip()
+SLACK_APP_TOKEN = os.getenv("SLACK_APP_TOKEN", "").strip()
 
 if not SLACK_BOT_TOKEN or not SLACK_APP_TOKEN:
+    print(f"DEBUG: SLACK_BOT_TOKEN present: {bool(SLACK_BOT_TOKEN)}")
+    print(f"DEBUG: SLACK_APP_TOKEN present: {bool(SLACK_APP_TOKEN)}")
     raise Exception("Missing SLACK_BOT_TOKEN or SLACK_APP_TOKEN env variables")
+
+# Diagnostic info (safe to log)
+print(f"DEBUG: SLACK_BOT_TOKEN length: {len(SLACK_BOT_TOKEN)}, prefix: {SLACK_BOT_TOKEN[:8]}...")
+print(f"DEBUG: SLACK_APP_TOKEN length: {len(SLACK_APP_TOKEN)}, prefix: {SLACK_APP_TOKEN[:8]}...")
+
+if not SLACK_BOT_TOKEN.startswith("xoxb-"):
+    print("WARNING: SLACK_BOT_TOKEN does not start with 'xoxb-'. It should be a Bot User OAuth Token.")
+if not SLACK_APP_TOKEN.startswith("xapp-"):
+    print("WARNING: SLACK_APP_TOKEN does not start with 'xapp-'. It should be an App-Level Token for Socket Mode.")
 
 app = App(token=SLACK_BOT_TOKEN)
 
@@ -210,8 +221,15 @@ if __name__ == "__main__":
         handler = SocketModeHandler(app, SLACK_APP_TOKEN)
         handler.start()
     except Exception as e:
+        print("\n" + "!" * 50)
         print(f"CRITICAL ERROR: Bot failed to start: {e}")
+        print("!" * 50 + "\n")
+        
         if "invalid_auth" in str(e):
-            print("ERROR: Slack authentication failed. Please verify your SLACK_APP_TOKEN and SLACK_BOT_TOKEN.")
-            print("Ensure SLACK_APP_TOKEN is an 'App-Level Token' (starts with xapp-) and Socket Mode is enabled.")
+            print("--- TROUBLESHOOTING SLACK AUTH ---")
+            print("1. Ensure SLACK_APP_TOKEN is an 'App-Level Token' (starts with xapp-).")
+            print("2. Ensure SLACK_BOT_TOKEN is a 'Bot User OAuth Token' (starts with xoxb-).")
+            print("3. Check that 'Socket Mode' is ENABLED in your Slack App settings.")
+            print("4. Verify that you haven't wrapped the tokens in quotes in your Railway environment variables.")
+            print("----------------------------------")
         traceback.print_exc()
