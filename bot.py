@@ -72,16 +72,25 @@ try:
         "https://www.googleapis.com/auth/drive",
     ]
 
-    creds = ServiceAccountCredentials.from_json_keyfile_name(
-        "credentials.json",
-        scope
-    )
+    google_creds_json = os.getenv("GOOGLE_CREDS")
+    if google_creds_json:
+        print("Loading Google credentials from GOOGLE_CREDS env var...")
+        creds_dict = json.loads(google_creds_json)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    else:
+        print("Loading Google credentials from credentials.json...")
+        creds = ServiceAccountCredentials.from_json_keyfile_name(
+            "credentials.json",
+            scope
+        )
 
     client_gs = gspread.authorize(creds)
     sheet = client_gs.open("Westwood Finances").sheet1
     print("Google Sheets connected")
 except Exception as e:
-    print("Google Sheets FAILED:", e)
+    print(f"Google Sheets FAILED: {e}")
+    if not google_creds_json and not os.path.exists("credentials.json"):
+        print("TIP: For Railway, set the GOOGLE_CREDS environment variable with the contents of your credentials.json file.")
 
 # ─────────────────────────────────────────────
 # CONSTANTS
@@ -197,4 +206,12 @@ def summary(ack, body, client):
 
 if __name__ == "__main__":
     print("Starting bot...")
-    SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
+    try:
+        handler = SocketModeHandler(app, SLACK_APP_TOKEN)
+        handler.start()
+    except Exception as e:
+        print(f"CRITICAL ERROR: Bot failed to start: {e}")
+        if "invalid_auth" in str(e):
+            print("ERROR: Slack authentication failed. Please verify your SLACK_APP_TOKEN and SLACK_BOT_TOKEN.")
+            print("Ensure SLACK_APP_TOKEN is an 'App-Level Token' (starts with xapp-) and Socket Mode is enabled.")
+        traceback.print_exc()
