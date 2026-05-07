@@ -87,6 +87,11 @@ try:
     if google_creds_json:
         print("Loading Google credentials from GOOGLE_CREDS env var...")
         creds_dict = json.loads(google_creds_json)
+        
+        # Fix: Railway often escapes newlines in the private key
+        if "private_key" in creds_dict:
+            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+            
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     else:
         print("Loading Google credentials from credentials.json...")
